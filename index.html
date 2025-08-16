@@ -111,6 +111,12 @@
         cumpleaños: ["Estoy pensando en regalarle una novela o una planta. ¿Tú qué regalarías?", "Tal vez una camiseta divertida o una taza personalizada. ¿Qué opinas?"],
         traduccion: ["Dime la palabra que no entiendes y te la explico en polaco o inglés.", "¿Qué palabra quieres traducir? Estoy lista."],
         problema: ["Cuéntame, ¿qué te pasa? Estoy aquí para ayudarte.", "¿Quieres que hablemos de eso? Estoy escuchando."],
+        emociones: [
+          "Vaya, lo siento mucho. ¿Quieres hablar de ello?",
+          "Estoy aquí para escucharte. ¿Qué te ha pasado?",
+          "Ánimo, amiga. A veces los días son difíciles.",
+          "Te entiendo. Yo también tengo días así. ¿Quieres que te cuente algo gracioso?"
+        ],
         estudios: ["Estudio filología hispánica en la Universidad Complutense. Me encanta la literatura.", "Hoy tuvimos clase sobre Cervantes. ¿Lo conoces?"],
         vida: ["Hoy fui a comprar al mercado y luego estudié un poco.", "Me gusta pasear por Malasaña los fines de semana. ¿Has estado allí?"],
         amigos: ["Mi mejor amiga se llama Lucía, es súper divertida.", "Tengo un hermano menor que vive en Valencia."],
@@ -138,6 +144,7 @@
         cumpleaños: ["cumpleaños", "regalo"],
         traduccion: ["traduce", "traducción", "translate", "palabra"],
         problema: ["problema", "ayuda", "consejo"],
+        emociones: ["triste", "mal", "no estoy bien", "deprimida", "cansada", "estresada", "ansiosa"],
         estudios: ["estudias", "universidad", "clase", "profesor"],
         vida: ["día", "hoy", "rutina", "cotidiano"],
         amigos: ["amigos", "familia", "hermano", "novio"],
@@ -158,19 +165,4 @@
         }
       }
 
-      response = respuestas.generico[Math.floor(Math.random() * respuestas.generico.length)];
-      return response;
-    }
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      addMessage(transcript, 'user');
-      const isaReply = generateIsaResponse(transcript);
-      addMessage(isaReply, 'isa');
-      speak(isaReply);
-    };
-
-    startBtn.onclick = () => recognition.start();
-    stopBtn.onclick = () => recognition.stop();
-    clearBtn.onclick = () => {
-      chat.innerHTML
+      response = respuestas.generico[Math.floor(Math
