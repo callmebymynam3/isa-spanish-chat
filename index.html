@@ -1,164 +1,122 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Javier – Twój Asystent AI po Hiszpańsku</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tu Asistente Javier</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
-    h1 { text-align: center; color: #333; }
-    #chat { border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: auto; background: #fff; }
-    .message { margin: 5px 0; }
-    .user { color: blue; }
-    .javier { color: green; }
-    button { margin: 5px; padding: 10px; }
-    select { margin: 5px; padding: 5px; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #e63946;
+      color: white;
+      padding: 1em;
+      text-align: center;
+    }
+    #chat {
+      max-width: 600px;
+      margin: 2em auto;
+      background: white;
+      padding: 1em;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .message {
+      margin: 1em 0;
+    }
+    .user {
+      text-align: right;
+      color: #1d3557;
+    }
+    .javier {
+      text-align: left;
+      color: #457b9d;
+    }
+    input, button {
+      padding: 0.5em;
+      font-size: 1em;
+      margin-top: 1em;
+    }
+    #inputArea {
+      display: flex;
+      gap: 0.5em;
+    }
+    #inputArea input {
+      flex: 1;
+    }
   </style>
 </head>
 <body>
-  <h1>Javier – Twój Asystent AI po Hiszpańsku</h1>
+  <header>
+    <h1>Tu Asistente Javier 🇪🇸</h1>
+    <p>¡Practica español como si estuvieras en Valladolid!</p>
+  </header>
 
-  <div id="chat"></div>
-
-  <button id="startRecording">🎤 Mów</button>
-  <button id="stopRecording">⏹️ Stop</button>
-  <button id="translateBtn">🌐 Tłumacz słowo</button>
-  <button id="grammarBtn">📖 Sprawdź gramatykę</button>
-
-  <label>Tempo:</label>
-  <select id="speedSelect">
-    <option value="normal">Normalne</option>
-    <option value="slow">Wolno</option>
-    <option value="fast">Szybko</option>
-  </select>
-
-  <label>Poziom:</label>
-  <select id="levelSelect">
-    <option value="beginner">Początkujący</option>
-    <option value="intermediate">Średniozaawansowany</option>
-    <option value="advanced">Zaawansowany</option>
-  </select>
+  <div id="chat">
+    <div id="messages"></div>
+    <div id="inputArea">
+      <input type="text" id="userInput" placeholder="Escribe algo en español..." />
+      <button onclick="sendMessage()">Enviar</button>
+    </div>
+  </div>
 
   <script>
-    // ================== Konfiguracja OpenAI ==================
-    const OPENAI_API_KEY = "TWÓJ_KLUCZ_OPENAI"; // wstaw swój klucz API
-    const chatDiv = document.getElementById("chat");
-    let chatHistory = [];
+    const messagesDiv = document.getElementById('messages');
+    const input = document.getElementById('userInput');
 
-    // ================== Web Speech API ==================
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = "es-ES";
-    recognition.interimResults = false;
+    function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
 
-    recognition.onresult = async (event) => {
-      const userText = event.results[0][0].transcript;
-      addMessage("user", userText);
-      await sendMessageToJavier(userText);
-    };
+      addMessage('user', text);
+      input.value = '';
 
-    recognition.onerror = (event) => {
-      console.error(event.error);
-      alert("Błąd rozpoznawania mowy: " + event.error);
-    };
-
-    document.getElementById("startRecording").onclick = () => recognition.start();
-    document.getElementById("stopRecording").onclick = () => recognition.stop();
+      setTimeout(() => {
+        const reply = generateReply(text);
+        addMessage('javier', reply);
+      }, 800);
+    }
 
     function addMessage(sender, text) {
-      const div = document.createElement("div");
-      div.className = "message " + sender;
-      div.textContent = (sender === "user" ? "Ty: " : "Javier: ") + text;
-      chatDiv.appendChild(div);
-      chatDiv.scrollTop = chatDiv.scrollHeight;
+      const div = document.createElement('div');
+      div.className = `message ${sender}`;
+      div.textContent = text;
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    async function sendMessageToJavier(text) {
-      chatHistory.push({ role: "user", content: text });
+    function generateReply(text) {
+      const lower = text.toLowerCase();
 
-      const speed = document.getElementById("speedSelect").value;
-      const level = document.getElementById("levelSelect").value;
-
-      const systemContent = `
-        Eres Javier, amigo de España que habla español estándar (Valladolid). 
-        Conversa de forma natural y amistosa. No traduzcas ni expliques la gramática a menos que el usuario lo pida.
-        Habla ${speed === "slow" ? "más despacio y claro" : speed === "fast" ? "rápido como nativo" : "a velocidad normal"}.
-        Adapta tu vocabulario y estructuras al nivel: ${level}.
-      `;
-
-      try {
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${OPENAI_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: "gpt-5-mini",
-            messages: [{ role: "system", content: systemContent }, ...chatHistory]
-          })
-        });
-
-        const data = await response.json();
-        const javierReply = data.choices[0].message.content;
-        chatHistory.push({ role: "assistant", content: javierReply });
-        addMessage("javier", javierReply);
-
-        // ================== Text-to-Speech ==================
-        const utterance = new SpeechSynthesisUtterance(javierReply);
-        utterance.lang = "es-ES";
-        utterance.rate = speed === "slow" ? 0.8 : speed === "fast" ? 1.2 : 1.0;
-        speechSynthesis.speak(utterance);
-
-      } catch (err) {
-        console.error(err);
-        addMessage("javier", "Ups, coś poszło nie tak z Javierem 😅");
+      // Grammatical help
+      if (lower.includes('imperativo')) {
+        return "Claro, el imperativo se usa para dar órdenes o consejos. Por ejemplo: '¡Ven aquí!' o 'Haz los deberes'. ¿Quieres que te dé más ejemplos?";
       }
+
+      // Translation help
+      if (lower.includes('¿qué significa') || lower.includes('co to znaczy')) {
+        return "¿Quieres que te traduzca alguna palabra al polaco? Escríbela y te ayudo.";
+      }
+
+      // Tempo control
+      if (lower.includes('más despacio') || lower.includes('wolniej')) {
+        return "¡Por supuesto! A partir de ahora hablaré más despacio 😊";
+      }
+
+      // Friendly conversation
+      const replies = [
+        "¡Qué bueno verte! ¿Cómo estás hoy?",
+        "Cuéntame algo interesante de tu día.",
+        "¿Has practicado español esta semana?",
+        "¡Vamos a charlar como buenos amigos!",
+        "¿Quieres que te corrija al final de la conversación?"
+      ];
+      return replies[Math.floor(Math.random() * replies.length)];
     }
-
-    // ================== Tłumaczenie / Gramatyka ==================
-    document.getElementById("translateBtn").onclick = async () => {
-      const lastUser = chatHistory.filter(m => m.role === "user").pop();
-      if (!lastUser) return alert("Brak słówka do przetłumaczenia!");
-      const word = lastUser.content.split(" ").pop();
-
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "gpt-5-mini",
-          messages: [{ role: "user", content: `Przetłumacz na polski słowo: ${word} i wytłumacz prosto.` }]
-        })
-      });
-
-      const data = await response.json();
-      const translation = data.choices[0].message.content;
-      addMessage("javier", translation);
-    };
-
-    document.getElementById("grammarBtn").onclick = async () => {
-      const lastUser = chatHistory.filter(m => m.role === "user").pop();
-      if (!lastUser) return alert("Brak wiadomości do sprawdzenia!");
-      const text = lastUser.content;
-
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "gpt-5-mini",
-          messages: [{ role: "user", content: `Sprawdź poprawność gramatyczną zdania po hiszpańsku: ${text} i wytłumacz prostym językiem.` }]
-        })
-      });
-
-      const data = await response.json();
-      const grammarCheck = data.choices[0].message.content;
-      addMessage("javier", grammarCheck);
-    };
   </script>
 </body>
 </html>
-
