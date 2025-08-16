@@ -83,17 +83,20 @@
     recognition.interimResults = false;
     recognition.continuous = false;
 
-    const synth = window.speechSynthesis;
-    const voicePrefs = { lang: 'es-ES', name: 'Google español' };
+    let spanishVoice = null;
+
+    window.speechSynthesis.onvoiceschanged = () => {
+      const voices = speechSynthesis.getVoices();
+      spanishVoice = voices.find(v => v.lang === 'es-ES') || voices[0];
+    };
 
     function speak(text) {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = voicePrefs.lang;
+      utterance.lang = 'es-ES';
       utterance.rate = 1.1;
-      const voices = synth.getVoices();
-      const selected = voices.find(v => v.lang === 'es-ES' && v.name.includes('Google'));
-      if (selected) utterance.voice = selected;
-      synth.speak(utterance);
+      if (spanishVoice) utterance.voice = spanishVoice;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utterance);
     }
 
     function addMessage(text, sender) {
@@ -124,64 +127,21 @@
       let response = "";
 
       const respuestas = {
-        saludo: [
-          "¡Hola! ¿Cómo estás hoy? 😊",
-          "¡Qué alegría escucharte! 💕",
-          "¡Hola amiga! ¿Qué tal tu día? ☀️",
-          "¡Hola! ¿Cómo te sientes hoy? 😄"
-        ],
-        estado: [
-          "Estoy bien, aunque hoy tuve mucho que estudiar 📚",
-          "Un poco cansada, pero feliz 😌",
-          "¡Muy bien! Hoy salí a caminar por el Retiro 🌳",
-          "Estoy emocionada por el fin de semana 💃",
-          "No dormí mucho, pero tengo energía ☕"
-        ],
-        emociones: [
-          "Vaya, lo siento mucho. ¿Quieres hablar de ello? 😢",
-          "Estoy aquí para escucharte. ¿Qué te ha pasado? 🤗",
-          "Ánimo, amiga. A veces los días son difíciles 💛",
-          "Te entiendo. Yo también tengo días así. ¿Quieres que te cuente algo gracioso? 😅"
-        ],
-        comida: [
-          "Me encanta la tortilla española 😋",
-          "Hoy comí bocadillo de jamón con tomate 🍞",
-          "¿Has probado el gazpacho? ¡Es refrescante! 🥒",
-          "Mi plato favorito es la paella de mariscos 🦐"
-        ],
-        estudios: [
-          "Estudio filología hispánica en la Complutense. ¡Es apasionante! 📖",
-          "Hoy tuvimos clase sobre Cervantes. ¿Lo conoces? 📚",
-          "Estoy preparando un trabajo sobre poesía barroca ✍️",
-          "Mi profesor de literatura es muy exigente 😅"
-        ],
-        viajes: [
-          "Me gustaría visitar Cracovia algún día ✈️",
-          "He estado en Lisboa, París y Roma. ¿Y tú? 🌍",
-          "Quiero hacer un viaje por el norte de España 🚗",
-          "¿Cuál es tu ciudad favorita? 🏙️"
-        ],
-        libros: [
-          "Estoy leyendo 'La sombra del viento'. ¡Es fascinante! 📚",
-          "Quiero escribir una novela sobre la vida en Madrid ✍️",
-          "Me encanta la poesía de Bécquer 💌",
-          "¿Tú lees mucho? ¿Qué te gusta? 📖"
-        ],
-        generico: [
-          "¡Qué curioso! Cuéntame más 🤔",
-          "Eso suena interesante. ¿Y luego qué pasó? 😮",
-          "Me encanta que me cuentes eso. ¿Cómo te sentiste? 💬",
-          "¡Vaya! No lo sabía. ¿Puedes explicarme más? 🧐",
-          "¡Qué historia! ¿Y qué hiciste después? 🎭"
-        ]
+        saludo: ["¡Hola! ¿Cómo estás hoy? 😊", "¡Qué alegría escucharte! 💕", "¡Hola amiga! ¿Qué tal tu día? ☀️"],
+        estado: ["Estoy bien, aunque hoy tuve mucho que estudiar 📚", "Un poco cansada, pero feliz 😌", "¡Muy bien! Hoy salí a caminar por el Retiro 🌳"],
+        emociones: ["Vaya, lo siento mucho. ¿Quieres hablar de ello? 😢", "Estoy aquí para escucharte. ¿Qué te ha pasado? 🤗", "Ánimo, amiga. A veces los días son difíciles 💛"],
+        comida: ["Me encanta la tortilla española 😋", "Hoy comí bocadillo de jamón con tomate 🍞", "¿Has probado el gazpacho? ¡Es refrescante! 🥒"],
+        estudios: ["Estudio filología hispánica en la Complutense. ¡Es apasionante! 📖", "Hoy tuvimos clase sobre Cervantes. ¿Lo conoces? 📚"],
+        viajes: ["Me gustaría visitar Cracovia algún día ✈️", "He estado en Lisboa, París y Roma. ¿Y tú? 🌍"],
+        libros: ["Estoy leyendo 'La sombra del viento'. ¡Es fascinante! 📚", "Quiero escribir una novela sobre la vida en Madrid ✍️"],
+        generico: ["¡Qué curioso! Cuéntame más 🤔", "Eso suena interesante. ¿Y luego qué pasó? 😮", "Me encanta que me cuentes eso. ¿Cómo te sentiste? 💬"]
       };
 
       const followUps = [
         "¿Y tú qué opinas? 🤔",
         "¿Te ha pasado algo parecido? 😯",
         "¿Quieres que te cuente más sobre eso? 📖",
-        "¿Qué harías tú en mi lugar? 💭",
-        "¿Te gustaría vivir en Madrid algún día? 🏙️"
+        "¿Qué harías tú en mi lugar? 💭"
       ];
 
       const keywords = {
@@ -194,7 +154,6 @@
         libros: ["libro", "leer", "lectura", "novela", "poesía"]
       };
 
-      // Dopasowanie odpowiedzi
       let matchedCategory = null;
       for (const category in keywords) {
         if (keywords[category].some(word => lower.includes(word))) {
@@ -211,7 +170,6 @@
         response = options[Math.floor(Math.random() * options.length)];
       }
 
-      // Dodaj pytanie follow-up
       const followUp = followUps[Math.floor(Math.random() * followUps.length)];
       response += " " + followUp;
 
@@ -227,27 +185,8 @@
 
     startBtn.onclick = () => recognition.start();
     stopBtn.onclick = () => recognition.stop();
-    clearBtn.onclick = () => {
-      chat.innerHTML = '';
-    };
+    clearBtn.onclick = () => chat.innerHTML = '';
     isaLifeBtn.onclick = simulateIsaLife;
-
-    // Automatyczne życie Isy co 60 sekund
-    let spanishVoice = null;
-
-window.speechSynthesis.onvoiceschanged = () => {
-  const voices = speechSynthesis.getVoices();
-  spanishVoice = voices.find(v => v.lang === 'es-ES') || voices[0];
-};
-function speak(text) {
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'es-ES';
-  utterance.rate = 1.1;
-  if (spanishVoice) utterance.voice = spanishVoice;
-  speechSynthesis.cancel(); // zatrzymaj poprzednie
-  speechSynthesis.speak(utterance);
-}
-    setInterval(simulateIsaLife, 60000);
   </script>
 </body>
 </html>
