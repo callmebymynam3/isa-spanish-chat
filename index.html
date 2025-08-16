@@ -44,9 +44,9 @@
     #controls {
       display: flex;
       gap: 10px;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
-    button {
+    button, select {
       padding: 10px 15px;
       font-size: 16px;
       border: none;
@@ -56,6 +56,7 @@
     #startBtn { background: #74c0fc; }
     #stopBtn { background: #ffa8a8; }
     #clearBtn { background: #ced4da; }
+    #topicSelect { background: #e3fafc; }
   </style>
 </head>
 <body>
@@ -65,6 +66,14 @@
     <button id="startBtn">🎙️ Habla</button>
     <button id="stopBtn">⏹️ Para</button>
     <button id="clearBtn">🧹 Limpia chat</button>
+    <select id="topicSelect">
+      <option value="">🗂️ Elige tema</option>
+      <option value="vida">Vida cotidiana</option>
+      <option value="estudios">Estudios</option>
+      <option value="comida">Comida</option>
+      <option value="viajes">Viajes</option>
+      <option value="libros">Libros</option>
+    </select>
   </div>
 
   <script>
@@ -72,6 +81,7 @@
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     const clearBtn = document.getElementById('clearBtn');
+    const topicSelect = document.getElementById('topicSelect');
 
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'es-ES';
@@ -99,62 +109,44 @@
       chat.scrollTop = chat.scrollHeight;
     }
 
+    function simulateIsaLife() {
+      const ideas = [
+        "Hoy fui a clase de literatura y hablamos de Lorca. ¡Me encantó! 📚",
+        "Estoy un poco estresada por el examen de mañana 😬",
+        "Mi compañera de piso cocinó paella y estaba deliciosa 😋",
+        "Estoy emocionada porque este fin de semana vamos al cine 💃",
+        "Me siento un poco nostálgica hoy... escuché una canción que me recordó a mi infancia 🎶"
+      ];
+      const idea = ideas[Math.floor(Math.random() * ideas.length)];
+      addMessage(idea, 'isa');
+      speak(idea);
+    }
+
     function generateIsaResponse(userText) {
       const lower = userText.toLowerCase();
       let response = "";
 
       const respuestas = {
-        saludo: ["¡Hola! ¿Cómo estás?", "¡Qué alegría escucharte!", "¡Hola amiga! ¿Qué tal tu día?"],
-        estado: ["Estoy bien, aunque hoy tuve mucho que estudiar.", "Un poco cansada, pero feliz.", "¡Muy bien! Hoy salí a caminar por el Retiro."],
-        clima: ["Hoy en Madrid hace sol con algunas nubes.", "Está un poco nublado, pero agradable.", "Hace calor, ¡perfecto para tomar algo en una terraza!"],
-        imperativo: ["El imperativo se usa para dar órdenes. Ejemplo: '¡Ven aquí!' ¿Quieres practicarlo conmigo?", "Es fácil: usa la raíz del verbo y añade la terminación. ¿Te doy ejemplos?"],
-        cumpleaños: ["Estoy pensando en regalarle una novela o una planta. ¿Tú qué regalarías?", "Tal vez una camiseta divertida o una taza personalizada. ¿Qué opinas?"],
-        traduccion: ["Dime la palabra que no entiendes y te la explico en polaco o inglés.", "¿Qué palabra quieres traducir? Estoy lista."],
-        problema: ["Cuéntame, ¿qué te pasa? Estoy aquí para ayudarte.", "¿Quieres que hablemos de eso? Estoy escuchando."],
-        emociones: [
-          "Vaya, lo siento mucho. ¿Quieres hablar de ello?",
-          "Estoy aquí para escucharte. ¿Qué te ha pasado?",
-          "Ánimo, amiga. A veces los días son difíciles.",
-          "Te entiendo. Yo también tengo días así. ¿Quieres que te cuente algo gracioso?"
-        ],
-        estudios: ["Estudio filología hispánica en la Universidad Complutense. Me encanta la literatura.", "Hoy tuvimos clase sobre Cervantes. ¿Lo conoces?"],
-        vida: ["Hoy fui a comprar al mercado y luego estudié un poco.", "Me gusta pasear por Malasaña los fines de semana. ¿Has estado allí?"],
-        amigos: ["Mi mejor amiga se llama Lucía, es súper divertida.", "Tengo un hermano menor que vive en Valencia."],
-        comida: ["Me encanta la tortilla española y el gazpacho.", "Hoy comí paella con mis compañeros de clase."],
-        libros: ["Estoy leyendo 'La sombra del viento'. ¡Es fascinante!", "Quiero escribir una novela sobre la vida en Madrid."],
-        cultura: ["En España celebramos la Nochevieja comiendo 12 uvas. ¿Lo sabías?", "Me encanta la Feria de Abril en Sevilla, aunque nunca he ido."],
-        viajes: ["Me gustaría visitar Cracovia algún día. ¿Es bonita?", "He estado en Lisboa, París y Roma. ¿Y tú?"],
-        opiniones: ["Creo que la tecnología puede ayudar mucho, pero también distrae.", "Estudiar filología me parece útil para entender el mundo."],
-        aprender: ["Para mejorar tu pronunciación, escucha podcasts y repite en voz alta.", "Muchos polacos confunden el uso de 'ser' y 'estar'. ¿Quieres que te lo explique?"],
-        humor: ["¿Sabes cuál es el colmo de un escritor? ¡Tener mala letra!", "Una vez confundí 'embarazada' con 'avergonzada'. ¡Qué lío!"],
+        vida: ["Hoy fui al mercado y compré frutas 🍎", "Me encanta pasear por Malasaña los domingos 🚶‍♀️"],
+        estudios: ["Estudio filología hispánica en la Complutense. ¡Es apasionante! 📖", "Hoy tuvimos clase sobre Cervantes. ¿Lo conoces?"],
+        comida: ["Me encanta la tortilla española 😋", "Hoy comí bocadillo de jamón con tomate 🍞"],
+        viajes: ["Me gustaría visitar Cracovia algún día ✈️", "He estado en Lisboa, París y Roma. ¿Y tú?"],
+        libros: ["Estoy leyendo 'La sombra del viento'. ¡Es fascinante! 📚", "Quiero escribir una novela sobre la vida en Madrid ✍️"],
         generico: [
-          "¡Qué curioso! Cuéntame más.",
-          "Eso suena interesante. ¿Y luego qué pasó?",
-          "Me encanta que me cuentes eso. ¿Cómo te sentiste?",
-          "¡Vaya! No lo sabía. ¿Puedes explicarme más?",
-          "¡Qué historia! ¿Y qué hiciste después?"
+          "¡Qué curioso! Cuéntame más 🤔",
+          "Eso suena interesante. ¿Y luego qué pasó? 😮",
+          "Me encanta que me cuentes eso. ¿Cómo te sentiste? 💬",
+          "¡Vaya! No lo sabía. ¿Puedes explicarme más? 🧐",
+          "¡Qué historia! ¿Y qué hiciste después? 🎭"
         ]
       };
 
       const keywords = {
-        saludo: ["hola", "buenos días", "buenas tardes"],
-        estado: ["cómo estás", "qué tal", "cómo te sientes"],
-        clima: ["tiempo", "clima", "madrid"],
-        imperativo: ["imperativo"],
-        cumpleaños: ["cumpleaños", "regalo"],
-        traduccion: ["traduce", "traducción", "translate", "palabra"],
-        problema: ["problema", "ayuda", "consejo"],
-        emociones: ["triste", "mal", "no estoy bien", "deprimida", "cansada", "estresada", "ansiosa"],
-        estudios: ["estudias", "universidad", "clase", "profesor"],
         vida: ["día", "hoy", "rutina", "cotidiano"],
-        amigos: ["amigos", "familia", "hermano", "novio"],
+        estudios: ["estudias", "universidad", "clase", "profesor"],
         comida: ["comida", "comer", "plato", "cocina"],
-        libros: ["libro", "leer", "novela", "escribir"],
-        cultura: ["costumbre", "cultura", "fiesta", "tradición"],
         viajes: ["viaje", "ciudad", "país", "vacaciones"],
-        opiniones: ["opinas", "crees", "piensas", "idea"],
-        aprender: ["aprender", "pronunciación", "gramática", "errores"],
-        humor: ["chiste", "broma", "vergonzoso", "risa"]
+        libros: ["libro", "leer", "novela", "escribir"]
       };
 
       for (const categoria in keywords) {
@@ -165,4 +157,40 @@
         }
       }
 
-      response = respuestas.generico[Math.floor(Math
+      response = respuestas.generico[Math.floor(Math.random() * respuestas.generico.length)];
+      return response;
+    }
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      addMessage(transcript, 'user');
+      const isaReply = generateIsaResponse(transcript);
+      addMessage(isaReply, 'isa');
+      speak(isaReply);
+    };
+
+    startBtn.onclick = () => recognition.start();
+    stopBtn.onclick = () => recognition.stop();
+    clearBtn.onclick = () => chat.innerHTML = "";
+
+    topicSelect.onchange = () => {
+      const topic = topicSelect.value;
+      if (topic) {
+        const respuestas = {
+          vida: "¿Quieres saber qué hice hoy? 😊",
+          estudios: "¿Te interesa lo que estudio en la universidad? 📚",
+          comida: "¿Hablamos de comida española? ¡Tengo hambre! 😋",
+          viajes: "¿Te cuento sobre mis viajes favoritos? ✈️",
+          libros: "¿Quieres saber qué libro estoy leyendo ahora? 📖"
+        };
+        const msg = respuestas[topic];
+        addMessage(msg, 'isa');
+        speak(msg);
+      }
+    };
+
+    // Symulacja życia Isy co 60 sekund
+    setInterval(simulateIsaLife, 60000);
+  </script>
+</body>
+</html>
