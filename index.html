@@ -233,7 +233,22 @@
     isaLifeBtn.onclick = simulateIsaLife;
 
     // Automatyczne życie Isy co 60 sekund
+    let spanishVoice = null;
+
+window.speechSynthesis.onvoiceschanged = () => {
+  const voices = speechSynthesis.getVoices();
+  spanishVoice = voices.find(v => v.lang === 'es-ES') || voices[0];
+};
+function speak(text) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'es-ES';
+  utterance.rate = 1.1;
+  if (spanishVoice) utterance.voice = spanishVoice;
+  speechSynthesis.cancel(); // zatrzymaj poprzednie
+  speechSynthesis.speak(utterance);
+}
     setInterval(simulateIsaLife, 60000);
   </script>
 </body>
 </html>
+
