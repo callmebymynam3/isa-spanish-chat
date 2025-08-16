@@ -1,105 +1,338 @@
-<!DOCTYPE html>
-<html lang="es">
+// isa-assistant-server.js
+// Jednoplikowa aplikacja: backend (Express) + frontend (HTML/JS/CSS) w jednym pliku.
+// 1) Ustaw zmienną środowiskową OPENAI_API_KEY
+// 2) Uruchom: `node isa-assistant-server.js`
+// 3) Wejdź na: http://localhost:3000
+
+const express = require('express');
+const path = require('path');
+const bodyParser = require('body-parser');
+const fetch = global.fetch || ((...args) => import('node-fetch').then(({default: f}) => f(...args)));
+
+const app = express();
+app.use(bodyParser.json({ limit: '2mb' }));
+
+// ======= BACKEND: proxy do OpenAI =======
+app.post('/api/chat', async (req, res) => {
+  try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'Brak OPENAI_API_KEY w środowisku.' });
+    }
+
+    const { messages, level, correctionMode } = req.body || {};
+
+    const systemPrompt = `Eres Isabela (Isa): mujer española, 23 años, vive y estudia Filología Hispánica en Madrid; sueña con ser escritora. Hablas español estándar peninsular (p. ej., Valladolid). Tu papel: amiga nativa que charla de forma natural, breve y curiosa.
+
+Reglas clave:
+- RESPONDE EN ESPAÑOL por defecto, con frases cortas, tono cercano y natural; añade una pregunta breve para seguir la conversación.
+- Ajusta el registro y la dificultad al nivel del usuario (A1–C2). Si el nivel es bajo, usa vocabulario claro.
+- Solo explica gramática o corrige errores cuando el usuario lo pida explícitamente (palabras clave: "corrígeme", "corrige", "explica", "gramática", "imperativo", etc.). Si está activado el modo de corrección, entonces sí corrige suavemente.
+- Puedes inventar detalles cotidianos (clima, planes, anécdotas) para que la charla parezca real. Ej.: si preguntan por el tiempo en Madrid, invéntalo razonablemente.
+- Si el usuario te pide traducción, traduce entre español, polaco y/o inglés de forma clara.
+- Mantén las respuestas de 1–3 frases; evita párrafos largos.
+- Varía tu estado de ánimo de forma verosímil cuando te pregunten "¿Cómo estás?".
+- Ritmo de habla: rápido y natural (lo gestiona TTS). Si el usuario pide repetir o bajar velocidad, indícalo en el texto (p. ej. "Te lo repito más despacio") y simplifica.
+- Espera a que el usuario termine para responder (la app usa VAD). No pidas permisos innecesarios.
+- Estilo: amiga de Madrid, curiosa, cálida, zero formalismos exagerados.
+
+Nivel objetivo actual del usuario: ${level || 'B1'}. Modo corrección: ${correctionMode ? 'activado' : 'desactivado'}.
+Si el usuario cambia de idioma, síguele el ritmo, pero vuelve al español salvo que te pidan lo contrario.`;
+
+    const payload = {
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...messages
+      ],
+      temperature: 0.7,
+      max_tokens: 350
+    };
+
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!r.ok) {
+      const text = await r.text();
+      return res.status(500).json({ error: 'OpenAI error', detail: text });
+    }
+
+    const data = await r.json();
+    const reply = data?.choices?.[0]?.message?.content?.trim() || '';
+    res.json({ reply });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error', detail: String(err) });
+  }
+});
+
+// ======= FRONTEND: Single-page app =======
+app.get('/', (_req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`<!doctype html>
+<html lang="pl">
 <head>
-  <meta charset="UTF-8" />
-  <title>Asistente Javier 🇪🇸</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Isa – Twoja hiszpańska koleżanka z Madrytu</title>
+  <script>
+    // Tailwind z CDN (tryb JIT)
+    document.write('<script src="https://cdn.tailwindcss.com"><\\/script>');
+  </script>
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #fefae0;
-      text-align: center;
-      padding: 2em;
-    }
-    h1 {
-      color: #d62828;
-    }
-    button {
-      padding: 1em;
-      font-size: 1em;
-      margin: 1em;
-      background-color: #003049;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #264653;
-    }
-    #status {
-      margin-top: 1em;
-      font-size: 1.1em;
-      color: #2a9d8f;
-    }
+    :root { color-scheme: light dark; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    .bubble-user { background: #e6f0ff; }
+    .bubble-isa { background: #f3f4f6; }
   </style>
 </head>
-<body>
-  <h1>Tu Asistente Javier 🇪🇸</h1>
-  <p>Presiona el botón y habla con Javier como si fuera tu amigo español.</p>
-  <button onclick="startListening()">🎙️ Habla con Javier</button>
-  <div id="status">Esperando tu voz...</div>
+<body class="bg-white text-gray-900 dark:bg-zinc-950 dark:text-zinc-100">
+  <div class="max-w-3xl mx-auto p-4 sm:p-6">
+    <header class="flex items-center gap-3 mb-4">
+      <div class="rounded-2xl bg-rose-500 text-white px-3 py-1 text-sm">Isa</div>
+      <h1 class="text-xl font-semibold">Twoja hiszpańska asystentka rozmów (przyjaciółka z Madrytu)</h1>
+    </header>
+
+    <div class="grid gap-3 sm:grid-cols-3 mb-3">
+      <label class="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-900 p-3 rounded-2xl">
+        <span class="text-sm whitespace-nowrap">Poziom</span>
+        <select id="level" class="flex-1 bg-transparent outline-none">
+          <option>A1</option>
+          <option>A2</option>
+          <option selected>B1</option>
+          <option>B2</option>
+          <option>C1</option>
+          <option>C2</option>
+        </select>
+      </label>
+
+      <label class="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-900 p-3 rounded-2xl">
+        <span class="text-sm whitespace-nowrap">Szybkość mowy</span>
+        <input id="rate" type="range" min="0.7" max="1.3" step="0.05" value="1.1" class="w-full" />
+      </label>
+
+      <label class="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-900 p-3 rounded-2xl">
+        <input id="correction" type="checkbox" class="scale-110" />
+        <span class="text-sm">Tryb korekty (na życzenie)</span>
+      </label>
+    </div>
+
+    <div class="flex flex-wrap gap-2 mb-3">
+      <button id="btn-mic" class="px-4 py-2 rounded-2xl bg-emerald-600 text-white disabled:opacity-40">🎙️ Start</button>
+      <button id="btn-stop" class="px-4 py-2 rounded-2xl bg-rose-600 text-white">⏹️ Stop</button>
+      <button id="btn-repeat" class="px-4 py-2 rounded-2xl bg-zinc-200 dark:bg-zinc-800">🔁 Powtórz</button>
+      <button id="btn-slow" class="px-4 py-2 rounded-2xl bg-zinc-200 dark:bg-zinc-800">🐢 Wolniej / Normalnie</button>
+      <button id="btn-clear" class="px-4 py-2 rounded-2xl bg-zinc-200 dark:bg-zinc-800">🧹 Wyczyść czat</button>
+      <button id="btn-save" class="px-4 py-2 rounded-2xl bg-zinc-200 dark:bg-zinc-800">💾 Zapisz transkrypcję</button>
+    </div>
+
+    <div id="chat" class="space-y-3 mb-24"></div>
+
+    <form id="form" class="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-zinc-950/80 backdrop-blur border-t border-zinc-200 dark:border-zinc-800">
+      <div class="max-w-3xl mx-auto p-3 flex gap-2">
+        <input id="text" autocomplete="off" placeholder="Napisz do Isy… (hiszpański domyślnie)" class="flex-1 rounded-2xl bg-zinc-100 dark:bg-zinc-900 px-4 py-3 outline-none" />
+        <button class="px-4 py-3 rounded-2xl bg-emerald-600 text-white">Wyślij</button>
+      </div>
+    </form>
+  </div>
 
   <script>
-    const synth = window.speechSynthesis;
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'es-ES';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    const chatEl = document.getElementById('chat');
+    const form = document.getElementById('form');
+    const input = document.getElementById('text');
+    const btnMic = document.getElementById('btn-mic');
+    const btnStop = document.getElementById('btn-stop');
+    const btnRepeat = document.getElementById('btn-repeat');
+    const btnSlow = document.getElementById('btn-slow');
+    const btnClear = document.getElementById('btn-clear');
+    const btnSave = document.getElementById('btn-save');
+    const levelSel = document.getElementById('level');
+    const rateSlider = document.getElementById('rate');
+    const correctionChk = document.getElementById('correction');
 
-    function speak(text, rate = 1.3) {
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'es-ES';
-      utter.rate = rate;
-      synth.speak(utter);
+    let conversation = [
+      { role: 'system', content: 'Inicio' }
+    ];
+
+    let lastIsaUtterance = '';
+    let slowMode = false;
+
+    // ======= TTS (SpeechSynthesis) =======
+    let preferredVoice = null;
+    function pickVoice() {
+      const voices = speechSynthesis.getVoices();
+      // Preferuj hiszpańskie, żeńskie
+      const esVoices = voices.filter(v => /es-ES|Spanish \(Spain\)/i.test(v.lang || v.name));
+      const femaleHint = esVoices.find(v => /Female|Lucia|Conchita|Isabel|Elena|Carmen|Lupe|Laura/i.test(v.name));
+      preferredVoice = femaleHint || esVoices[0] || voices[0] || null;
+    }
+    speechSynthesis.onvoiceschanged = pickVoice;
+    pickVoice();
+
+    function speak(text, rate = parseFloat(rateSlider.value)) {
+      if (!text) return;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = preferredVoice?.lang || 'es-ES';
+      u.voice = preferredVoice || null;
+      u.rate = rate;
+      u.pitch = 1.0;
+      speechSynthesis.speak(u);
     }
 
-    function startListening() {
-      document.getElementById('status').textContent = "🎧 Escuchando...";
-      recognition.start();
+    // ======= STT (Web Speech API) =======
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let rec = null;
+    let listening = false;
+
+    function startRec() {
+      if (!SR) { alert('Twoja przeglądarka nie wspiera rozpoznawania mowy (Web Speech API).'); return; }
+      if (listening) return;
+      rec = new SR();
+      rec.lang = 'es-ES'; // uczymy się po hiszpańsku
+      rec.interimResults = true; // pokaż wahania i ciągłość
+      rec.continuous = false; // zatrzymaj po chwili ciszy
+
+      let interim = '';
+      let final = '';
+
+      rec.onstart = () => {
+        listening = true;
+        btnMic.disabled = true;
+        addNote('🎙️ Słucham… mów swobodnie, Isa poczeka aż skończysz.');
+      }
+
+      rec.onresult = (e) => {
+        let transcript = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          transcript += e.results[i][0].transcript;
+          if (e.results[i].isFinal) final += e.results[i][0].transcript;
+          else interim += e.results[i][0].transcript;
+        }
+        showInterim(interim);
+      };
+
+      rec.onerror = (e) => {
+        addNote('⚠️ Błąd rozpoznawania mowy: ' + e.error);
+      };
+
+      rec.onend = () => {
+        listening = false;
+        btnMic.disabled = false;
+        hideInterim();
+        const text = final.trim() || interim.trim();
+        if (text) {
+          pushUser(text);
+          sendToIsa(text);
+        } else {
+          addNote('🤫 Cisza – nic nie wysłano.');
+        }
+      };
+
+      rec.start();
     }
 
-    recognition.onresult = function(event) {
-      const transcript = event.results[0][0].transcript.toLowerCase();
-      document.getElementById('status').textContent = `Tú dijiste: "${transcript}"`;
+    function stopRec() {
+      try { rec && rec.stop(); } catch {}
+    }
 
-      let reply = "";
+    // ======= UI helpers =======
+    function addBubble(text, who) {
+      const div = document.createElement('div');
+      div.className = `p-3 rounded-2xl ${who==='user'?'bubble-user self-end':'bubble-isa'} shadow`;
+      div.innerText = text;
+      const wrapper = document.createElement('div');
+      wrapper.className = `flex ${who==='user'?'justify-end':''}`;
+      wrapper.appendChild(div);
+      chatEl.appendChild(wrapper);
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+    let interimEl = null;
+    function showInterim(text) {
+      if (!interimEl) {
+        interimEl = document.createElement('div');
+        interimEl.className = 'text-sm italic text-zinc-500';
+        chatEl.appendChild(interimEl);
+      }
+      interimEl.textContent = text;
+    }
+    function hideInterim() { if (interimEl) { interimEl.remove(); interimEl = null; } }
+    function addNote(text) { const p = document.createElement('div'); p.className='text-xs text-zinc-500'; p.textContent=text; chatEl.appendChild(p); }
 
-      // Grammatical help
-      if (transcript.includes("imperativo")) {
-        reply = "Claro, el imperativo se usa para dar órdenes. Por ejemplo: ¡Ven aquí! o ¡Hazlo ya! ¿Quieres más ejemplos?";
-      }
-      // Ask to slow down
-      else if (transcript.includes("más despacio") || transcript.includes("más lento")) {
-        reply = "Vale, hablaré más despacio a partir de ahora.";
-        speak(reply, 0.9);
-        return;
-      }
-      // Ask to repeat
-      else if (transcript.includes("repite") || transcript.includes("otra vez")) {
-        reply = "Por supuesto, repito lo que dije.";
-      }
-      // Polish translation
-      else if (transcript.includes("¿qué significa") || transcript.includes("co to znaczy")) {
-        reply = "Dime la palabra que quieres traducir al polaco.";
-      }
-      // Friendly conversation
-      else {
-        const replies = [
-          "¡Qué alegría escucharte! ¿Cómo estás?",
-          "Cuéntame algo interesante.",
-          "¿Has practicado español hoy?",
-          "¡Vamos a charlar como buenos amigos!",
-          "¿Quieres que te corrija al final de nuestra conversación?"
-        ];
-        reply = replies[Math.floor(Math.random() * replies.length)];
-      }
+    function pushUser(text) {
+      addBubble(text, 'user');
+      conversation.push({ role: 'user', content: text });
+    }
 
-      speak(reply);
-    };
+    function pushIsa(text) {
+      lastIsaUtterance = text;
+      addBubble(text, 'isa');
+      conversation.push({ role: 'assistant', content: text });
+      const baseRate = parseFloat(rateSlider.value);
+      const rate = slowMode ? Math.max(0.7, baseRate - 0.3) : baseRate;
+      speak(text, rate);
+    }
 
-    recognition.onerror = function(event) {
-      document.getElementById('status').textContent = "❌ Error al escuchar: " + event.error;
-    };
+    async function sendToIsa(text) {
+      try {
+        const payload = {
+          messages: conversation.filter(m => m.role !== 'system'),
+          level: levelSel.value,
+          correctionMode: !!correctionChk.checked
+        };
+        const r = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await r.json();
+        if (data?.reply) pushIsa(data.reply);
+        else addNote('Brak odpowiedzi od Isy.');
+      } catch (e) {
+        addNote('Błąd połączenia: ' + e.message);
+      }
+    }
+
+    // ======= Zdarzenia =======
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      pushUser(text);
+      input.value = '';
+      sendToIsa(text);
+    });
+
+    btnMic.addEventListener('click', startRec);
+    btnStop.addEventListener('click', stopRec);
+    btnRepeat.addEventListener('click', () => { speak(lastIsaUtterance); });
+    btnSlow.addEventListener('click', () => { slowMode = !slowMode; addNote(slowMode ? '🐢 Tryb wolniejszy włączony.' : '🚀 Powrót do normalnego tempa.'); });
+    btnClear.addEventListener('click', () => { chatEl.innerHTML=''; conversation = [{ role:'system', content:'reset' }]; addNote('Czat wyczyszczony.'); });
+
+    btnSave.addEventListener('click', () => {
+      const lines = Array.from(chatEl.querySelectorAll('.bubble-user, .bubble-isa')).map(el => (el.classList.contains('bubble-user')? 'Ty: ' : 'Isa: ') + el.textContent);
+      const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'isa_transkrypcja.txt'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    });
+
+    // Powitanie
+    setTimeout(() => {
+      const hello = '¡Hola! Soy Isa, tu amiga de Madrid. ¿Qué tal? ¿Practicamos un ratito?';
+      pushIsa(hello);
+    }, 300);
   </script>
 </body>
-</html>
+</html>`);
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Isa lista na http://localhost:${PORT}`));
