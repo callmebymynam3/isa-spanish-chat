@@ -2,121 +2,104 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Tu Asistente Javier</title>
+  <title>Asistente Javier 🇪🇸</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background-color: #e63946;
-      color: white;
-      padding: 1em;
+      background-color: #fefae0;
       text-align: center;
+      padding: 2em;
     }
-    #chat {
-      max-width: 600px;
-      margin: 2em auto;
-      background: white;
+    h1 {
+      color: #d62828;
+    }
+    button {
       padding: 1em;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .message {
-      margin: 1em 0;
-    }
-    .user {
-      text-align: right;
-      color: #1d3557;
-    }
-    .javier {
-      text-align: left;
-      color: #457b9d;
-    }
-    input, button {
-      padding: 0.5em;
       font-size: 1em;
+      margin: 1em;
+      background-color: #003049;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #264653;
+    }
+    #status {
       margin-top: 1em;
-    }
-    #inputArea {
-      display: flex;
-      gap: 0.5em;
-    }
-    #inputArea input {
-      flex: 1;
+      font-size: 1.1em;
+      color: #2a9d8f;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Tu Asistente Javier 🇪🇸</h1>
-    <p>¡Practica español como si estuvieras en Valladolid!</p>
-  </header>
-
-  <div id="chat">
-    <div id="messages"></div>
-    <div id="inputArea">
-      <input type="text" id="userInput" placeholder="Escribe algo en español..." />
-      <button onclick="sendMessage()">Enviar</button>
-    </div>
-  </div>
+  <h1>Tu Asistente Javier 🇪🇸</h1>
+  <p>Presiona el botón y habla con Javier como si fuera tu amigo español.</p>
+  <button onclick="startListening()">🎙️ Habla con Javier</button>
+  <div id="status">Esperando tu voz...</div>
 
   <script>
-    const messagesDiv = document.getElementById('messages');
-    const input = document.getElementById('userInput');
+    const synth = window.speechSynthesis;
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'es-ES';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-    function sendMessage() {
-      const text = input.value.trim();
-      if (!text) return;
-
-      addMessage('user', text);
-      input.value = '';
-
-      setTimeout(() => {
-        const reply = generateReply(text);
-        addMessage('javier', reply);
-      }, 800);
+    function speak(text, rate = 1.3) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'es-ES';
+      utter.rate = rate;
+      synth.speak(utter);
     }
 
-    function addMessage(sender, text) {
-      const div = document.createElement('div');
-      div.className = `message ${sender}`;
-      div.textContent = text;
-      messagesDiv.appendChild(div);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    function startListening() {
+      document.getElementById('status').textContent = "🎧 Escuchando...";
+      recognition.start();
     }
 
-    function generateReply(text) {
-      const lower = text.toLowerCase();
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript.toLowerCase();
+      document.getElementById('status').textContent = `Tú dijiste: "${transcript}"`;
+
+      let reply = "";
 
       // Grammatical help
-      if (lower.includes('imperativo')) {
-        return "Claro, el imperativo se usa para dar órdenes o consejos. Por ejemplo: '¡Ven aquí!' o 'Haz los deberes'. ¿Quieres que te dé más ejemplos?";
+      if (transcript.includes("imperativo")) {
+        reply = "Claro, el imperativo se usa para dar órdenes. Por ejemplo: ¡Ven aquí! o ¡Hazlo ya! ¿Quieres más ejemplos?";
       }
-
-      // Translation help
-      if (lower.includes('¿qué significa') || lower.includes('co to znaczy')) {
-        return "¿Quieres que te traduzca alguna palabra al polaco? Escríbela y te ayudo.";
+      // Ask to slow down
+      else if (transcript.includes("más despacio") || transcript.includes("más lento")) {
+        reply = "Vale, hablaré más despacio a partir de ahora.";
+        speak(reply, 0.9);
+        return;
       }
-
-      // Tempo control
-      if (lower.includes('más despacio') || lower.includes('wolniej')) {
-        return "¡Por supuesto! A partir de ahora hablaré más despacio 😊";
+      // Ask to repeat
+      else if (transcript.includes("repite") || transcript.includes("otra vez")) {
+        reply = "Por supuesto, repito lo que dije.";
       }
-
+      // Polish translation
+      else if (transcript.includes("¿qué significa") || transcript.includes("co to znaczy")) {
+        reply = "Dime la palabra que quieres traducir al polaco.";
+      }
       // Friendly conversation
-      const replies = [
-        "¡Qué bueno verte! ¿Cómo estás hoy?",
-        "Cuéntame algo interesante de tu día.",
-        "¿Has practicado español esta semana?",
-        "¡Vamos a charlar como buenos amigos!",
-        "¿Quieres que te corrija al final de la conversación?"
-      ];
-      return replies[Math.floor(Math.random() * replies.length)];
-    }
+      else {
+        const replies = [
+          "¡Qué alegría escucharte! ¿Cómo estás?",
+          "Cuéntame algo interesante.",
+          "¿Has practicado español hoy?",
+          "¡Vamos a charlar como buenos amigos!",
+          "¿Quieres que te corrija al final de nuestra conversación?"
+        ];
+        reply = replies[Math.floor(Math.random() * replies.length)];
+      }
+
+      speak(reply);
+    };
+
+    recognition.onerror = function(event) {
+      document.getElementById('status').textContent = "❌ Error al escuchar: " + event.error;
+    };
   </script>
 </body>
 </html>
