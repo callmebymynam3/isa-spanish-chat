@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Javier - Twój Asystent Hiszpański</title>
+</head>
+<body>
+    <h1>Hola! Soy Javier, tu amigo español.</h1>
+    <p>Habla conmigo en español y mejora tu fluidez. Haz clic en el botón para empezar a hablar.</p>
+    <button id="start-btn">🎤 Hablar</button>
+    <p id="transcript"></p>
+
+    <script>
+        const startBtn = document.getElementById('start-btn');
+        const transcriptEl = document.getElementById('transcript');
+
+        // Sprawdzenie czy przeglądarka obsługuje rozpoznawanie mowy
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.");
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'es-ES'; // hiszpański standardowy (Hiszpania)
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = (event) => {
+                const spokenText = event.results[0][0].transcript;
+                transcriptEl.textContent = "Tú dijiste: " + spokenText;
+                // Tutaj można dodać wywołanie API AI, np. ChatGPT, aby Javier odpowiedział
+                alert("Javier respondería aquí: ¡Muy bien!");
+            };
+
+            startBtn.addEventListener('click', () => {
+                recognition.start();
+            });
+        }
+    </script>
+</body>
+</html>
