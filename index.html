@@ -103,23 +103,33 @@
       const lower = userText.toLowerCase();
       let response = "";
 
+      const respuestas = {
+        saludo: ["¡Hola! ¿Cómo estás?", "¡Qué alegría escucharte!", "¡Hola amiga! ¿Qué tal tu día?"],
+        estado: ["Estoy bien, aunque hoy tuve mucho que estudiar.", "Un poco cansada, pero feliz.", "¡Muy bien! Hoy salí a caminar por el Retiro."],
+        clima: ["Hoy en Madrid hace sol con algunas nubes.", "Está un poco nublado, pero agradable.", "Hace calor, ¡perfecto para tomar algo en una terraza!"],
+        imperativo: ["El imperativo se usa para dar órdenes. Ejemplo: '¡Ven aquí!' ¿Quieres practicarlo conmigo?", "Es fácil: usa la raíz del verbo y añade la terminación. ¿Te doy ejemplos?"],
+        cumpleaños: ["Estoy pensando en regalarle una novela o una planta. ¿Tú qué regalarías?", "Tal vez una camiseta divertida o una taza personalizada. ¿Qué opinas?"],
+        traduccion: ["Dime la palabra que no entiendes y te la explico en polaco o inglés.", "¿Qué palabra quieres traducir? Estoy lista."],
+        problema: ["Cuéntame, ¿qué te pasa? Estoy aquí para ayudarte.", "¿Quieres que hablemos de eso? Estoy escuchando."],
+        generico: ["Interesante... ¿Puedes contarme más?", "¡Qué curioso! ¿Y cómo te sientes al respecto?", "Me encanta que me cuentes eso. ¿Y luego qué pasó?"]
+      };
+
       if (lower.includes("hola")) {
-        response = "¡Hola! ¿Cómo estás hoy?";
+        response = respuestas.saludo[Math.floor(Math.random() * respuestas.saludo.length)];
+      } else if (lower.includes("cómo estás") || lower.includes("qué tal")) {
+        response = respuestas.estado[Math.floor(Math.random() * respuestas.estado.length)];
+      } else if (lower.includes("tiempo") || lower.includes("clima") || lower.includes("madrid")) {
+        response = respuestas.clima[Math.floor(Math.random() * respuestas.clima.length)];
       } else if (lower.includes("imperativo")) {
-        response = "Claro, el imperativo se usa para dar órdenes. Por ejemplo: '¡Ven aquí!' ¿Quieres que te dé más ejemplos?";
-      } else if (lower.includes("cómo estás")) {
-        const moods = ["Estoy un poco cansada, pero feliz.", "¡Muy bien! Hoy tuve clase de literatura.", "Un poco estresada, tengo un examen mañana."];
-        response = moods[Math.floor(Math.random() * moods.length)];
-      } else if (lower.includes("traduce")) {
-        response = "¿Qué palabra quieres que te traduzca? Puedes decirme en polaco o inglés.";
-      } else if (lower.includes("problema")) {
-        response = "Cuéntame, ¿qué te pasa? Estoy aquí para ayudarte.";
-      } else if (lower.includes("cumpleaños")) {
-        response = "Estoy pensando en regalarle un libro o una planta. ¿Tú qué opinas?";
-      } else if (lower.includes("tiempo") || lower.includes("clima")) {
-        response = "Hoy en Madrid hace sol con algunas nubes. ¡Perfecto para pasear!";
+        response = respuestas.imperativo[Math.floor(Math.random() * respuestas.imperativo.length)];
+      } else if (lower.includes("cumpleaños") || lower.includes("regalo")) {
+        response = respuestas.cumpleaños[Math.floor(Math.random() * respuestas.cumpleaños.length)];
+      } else if (lower.includes("traduce") || lower.includes("traducción") || lower.includes("translate")) {
+        response = respuestas.traduccion[Math.floor(Math.random() * respuestas.traduccion.length)];
+      } else if (lower.includes("problema") || lower.includes("ayuda") || lower.includes("consejo")) {
+        response = respuestas.problema[Math.floor(Math.random() * respuestas.problema.length)];
       } else {
-        response = "¡Qué interesante! Cuéntame más.";
+        response = respuestas.generico[Math.floor(Math.random() * respuestas.generico.length)];
       }
 
       return response;
