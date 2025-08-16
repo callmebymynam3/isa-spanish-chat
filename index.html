@@ -111,27 +111,54 @@
         cumpleaños: ["Estoy pensando en regalarle una novela o una planta. ¿Tú qué regalarías?", "Tal vez una camiseta divertida o una taza personalizada. ¿Qué opinas?"],
         traduccion: ["Dime la palabra que no entiendes y te la explico en polaco o inglés.", "¿Qué palabra quieres traducir? Estoy lista."],
         problema: ["Cuéntame, ¿qué te pasa? Estoy aquí para ayudarte.", "¿Quieres que hablemos de eso? Estoy escuchando."],
-        generico: ["Interesante... ¿Puedes contarme más?", "¡Qué curioso! ¿Y cómo te sientes al respecto?", "Me encanta que me cuentes eso. ¿Y luego qué pasó?"]
+        estudios: ["Estudio filología hispánica en la Universidad Complutense. Me encanta la literatura.", "Hoy tuvimos clase sobre Cervantes. ¿Lo conoces?"],
+        vida: ["Hoy fui a comprar al mercado y luego estudié un poco.", "Me gusta pasear por Malasaña los fines de semana. ¿Has estado allí?"],
+        amigos: ["Mi mejor amiga se llama Lucía, es súper divertida.", "Tengo un hermano menor que vive en Valencia."],
+        comida: ["Me encanta la tortilla española y el gazpacho.", "Hoy comí paella con mis compañeros de clase."],
+        libros: ["Estoy leyendo 'La sombra del viento'. ¡Es fascinante!", "Quiero escribir una novela sobre la vida en Madrid."],
+        cultura: ["En España celebramos la Nochevieja comiendo 12 uvas. ¿Lo sabías?", "Me encanta la Feria de Abril en Sevilla, aunque nunca he ido."],
+        viajes: ["Me gustaría visitar Cracovia algún día. ¿Es bonita?", "He estado en Lisboa, París y Roma. ¿Y tú?"],
+        opiniones: ["Creo que la tecnología puede ayudar mucho, pero también distrae.", "Estudiar filología me parece útil para entender el mundo."],
+        aprender: ["Para mejorar tu pronunciación, escucha podcasts y repite en voz alta.", "Muchos polacos confunden el uso de 'ser' y 'estar'. ¿Quieres que te lo explique?"],
+        humor: ["¿Sabes cuál es el colmo de un escritor? ¡Tener mala letra!", "Una vez confundí 'embarazada' con 'avergonzada'. ¡Qué lío!"],
+        generico: [
+          "¡Qué curioso! Cuéntame más.",
+          "Eso suena interesante. ¿Y luego qué pasó?",
+          "Me encanta que me cuentes eso. ¿Cómo te sentiste?",
+          "¡Vaya! No lo sabía. ¿Puedes explicarme más?",
+          "¡Qué historia! ¿Y qué hiciste después?"
+        ]
       };
 
-      if (lower.includes("hola")) {
-        response = respuestas.saludo[Math.floor(Math.random() * respuestas.saludo.length)];
-      } else if (lower.includes("cómo estás") || lower.includes("qué tal")) {
-        response = respuestas.estado[Math.floor(Math.random() * respuestas.estado.length)];
-      } else if (lower.includes("tiempo") || lower.includes("clima") || lower.includes("madrid")) {
-        response = respuestas.clima[Math.floor(Math.random() * respuestas.clima.length)];
-      } else if (lower.includes("imperativo")) {
-        response = respuestas.imperativo[Math.floor(Math.random() * respuestas.imperativo.length)];
-      } else if (lower.includes("cumpleaños") || lower.includes("regalo")) {
-        response = respuestas.cumpleaños[Math.floor(Math.random() * respuestas.cumpleaños.length)];
-      } else if (lower.includes("traduce") || lower.includes("traducción") || lower.includes("translate")) {
-        response = respuestas.traduccion[Math.floor(Math.random() * respuestas.traduccion.length)];
-      } else if (lower.includes("problema") || lower.includes("ayuda") || lower.includes("consejo")) {
-        response = respuestas.problema[Math.floor(Math.random() * respuestas.problema.length)];
-      } else {
-        response = respuestas.generico[Math.floor(Math.random() * respuestas.generico.length)];
+      const keywords = {
+        saludo: ["hola", "buenos días", "buenas tardes"],
+        estado: ["cómo estás", "qué tal", "cómo te sientes"],
+        clima: ["tiempo", "clima", "madrid"],
+        imperativo: ["imperativo"],
+        cumpleaños: ["cumpleaños", "regalo"],
+        traduccion: ["traduce", "traducción", "translate", "palabra"],
+        problema: ["problema", "ayuda", "consejo"],
+        estudios: ["estudias", "universidad", "clase", "profesor"],
+        vida: ["día", "hoy", "rutina", "cotidiano"],
+        amigos: ["amigos", "familia", "hermano", "novio"],
+        comida: ["comida", "comer", "plato", "cocina"],
+        libros: ["libro", "leer", "novela", "escribir"],
+        cultura: ["costumbre", "cultura", "fiesta", "tradición"],
+        viajes: ["viaje", "ciudad", "país", "vacaciones"],
+        opiniones: ["opinas", "crees", "piensas", "idea"],
+        aprender: ["aprender", "pronunciación", "gramática", "errores"],
+        humor: ["chiste", "broma", "vergonzoso", "risa"]
+      };
+
+      for (const categoria in keywords) {
+        if (keywords[categoria].some(k => lower.includes(k))) {
+          const opciones = respuestas[categoria];
+          response = opciones[Math.floor(Math.random() * opciones.length)];
+          return response;
+        }
       }
 
+      response = respuestas.generico[Math.floor(Math.random() * respuestas.generico.length)];
       return response;
     }
 
@@ -146,8 +173,4 @@
     startBtn.onclick = () => recognition.start();
     stopBtn.onclick = () => recognition.stop();
     clearBtn.onclick = () => {
-      chat.innerHTML = "";
-    };
-  </script>
-</body>
-</html>
+      chat.innerHTML
